@@ -44,7 +44,7 @@ func Handler(w http.ResponseWriter, req *http.Request) {
 	columns := make([]string, 0, len(input))
 	var values []interface{}
 	if key > 0 {
-		values = make([]interface{}, 0, len(input) + 1)
+		values = make([]interface{}, 0, len(input)+1)
 	} else {
 		values = make([]interface{}, 0, len(input))
 	}
@@ -87,15 +87,10 @@ func Handler(w http.ResponseWriter, req *http.Request) {
 	}
 
 	if method == "GET" {
-		var rows *sql.Rows
 		var pointers []interface{}
 		var container []string
 
-		if key > 0 {
-			rows, err = db.Query(query, key)
-		} else {
-			rows, err = db.Query(query)
-		}
+		rows, err := db.Query(query, values...)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -139,6 +134,15 @@ func Handler(w http.ResponseWriter, req *http.Request) {
 		}
 	} else if method == "POST" {
 	} else {
+		result, err := db.Exec(query, values...)
+		if err != nil {
+			log.Fatal(err)
+		}
+		b, err := json.Marshal(result)
+		if err != nil {
+			log.Fatal(err)
+		}
+		msg += string(b)
 	}
 
 	// close mysql connection
