@@ -27,7 +27,7 @@ func Handler(w http.ResponseWriter, req *http.Request) {
 	buf, _ := r.ReadBytes(0)
 	json.Unmarshal(buf, &input)
 
-	db, err := sql.Open("mysql", "php-crud-api:php-crud-api@/php-crud-api")
+	db, err := sql.Open("mysql", "php-crud-api:php-crud-api@unix(/var/run/mysqld/mysqld.sock)/php-crud-api")
 	if err != nil {
 		panic(err.Error())
 	}
