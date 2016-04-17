@@ -1,16 +1,17 @@
 package main
 
 import (
+	"encoding/json"
 	"database/sql"
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/gorilla/mux"
 	"log"
 	"net/http"
 	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
+	"bufio"
 )
 
 func Handler(w http.ResponseWriter, req *http.Request) {
@@ -20,8 +21,11 @@ func Handler(w http.ResponseWriter, req *http.Request) {
 	u, _ := url.ParseRequestURI(req.RequestURI)
 	request := strings.Split(strings.Trim(u.Path, "/"), "/")
 
-	fmt.Fprintf(w, "<p>%s</p>", method)
-	fmt.Fprintf(w, "<p>%s</p>", request)
+	// load input from request body
+	var input map[string]interface{}
+	r := bufio.NewReader(req.Body);
+	buf, _ := r.ReadBytes(0)
+	json.Unmarshal(buf, &input)
 
 	db, err := sql.Open("mysql", "php-crud-api:php-crud-api@/php-crud-api")
 	if err != nil {
@@ -32,49 +36,55 @@ func Handler(w http.ResponseWriter, req *http.Request) {
 	table := regexp.MustCompile("[^a-z0-9_]+").ReplaceAllString(request[0], "")
 	key := 0
 	if len(request) > 1 {
-		strconv.ParseInt(request[1], 10, 64)
+		key, _ = strconv.Atoi(request[1])
 	}
 
-	/*
-	   // escape the columns from the input object
-	   string[] columns = input!=null ? input.Keys.Select(i => Regex.Replace(i.ToString(), "[^a-z0-9_]+", "")).ToArray() : null;
+	// escape the columns from the input object
+	columns := make([]string, 0, len(input))
+	values := make([]interface{}, 0, len(input))
+	set := ""
+	i:=0
+	for column := range input {
+		name := regexp.MustCompile("[^a-z0-9_]+").ReplaceAllString(column, "")
+		columns = append(columns, name)
+		values = append(values, input[column])
+		if i>0 {
+			set += ", "
+		}
+		set+=fmt.Sprintf("`%s`=@%d",name,i)
+		i++;
+ 	}
 
-	   // build the SET part of the SQL command
-	   string set = input != null ? String.Join (", ", columns.Select (i => "[" + i + "]=@_" + i).ToArray ()) : "";
-	*/
 	// create SQL based on HTTP method
-	//	string sql := null;
+	sql:="";
 	switch method {
 	case "GET":
 		if key > 0 {
-			sql := fmt.Sprintf("select * from `{0}` where `id`=@pk", table)
+			sql = fmt.Sprintf("select * from `%s` where `id`=@pk", table)
 		} else {
-			sql := fmt.Sprintf("select * from `{0}`", table)
+			sql = fmt.Sprintf("select * from `%s`", table)
 		}
 		break
 	case "PUT":
-		sql := fmt.Sprintf("update `{0}` set {1} where `id`=@pk", table, set)
+		sql = fmt.Sprintf("update `%s` set %s where `id`=@pk", table, set)
 		break
 	case "POST":
-		sql := fmt.Sprintf("insert into `{0}` set {1}; select last_insert_id()", table, set)
+		sql = fmt.Sprintf("insert into `%s` set %s; select last_insert_id()", table, set)
 		break
 	case "DELETE":
-		sql := fmt.Sprintf("delete `{0}` where `id`=@pk", table)
+		sql = fmt.Sprintf("delete `%s` where `id`=@pk", table)
 		break
 	}
 
 	// close mysql connection
 	defer db.Close()
 
-	fmt.Fprint(w, "<p>Hello World</p>")
+	fmt.Fprint(w, sql)
 }
 
 func main() {
-	r := mux.NewRouter()
-	r.HandleFunc("/{table}/{key}", Handler)
-	r.HandleFunc("/{table}", Handler)
-	r.HandleFunc("/", Handler)
-	err := http.ListenAndServe(":8000", r)
+	http.HandleFunc("/", Handler)
+	err := http.ListenAndServe(":8000", nil)
 	if err != nil {
 		log.Fatal("ListenAndServe error: ", err)
 	}
