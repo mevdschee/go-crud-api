@@ -46,8 +46,8 @@ func Handler(w http.ResponseWriter, req *http.Request) {
 	i := 0
 	for column := range input {
 		name := regexp.MustCompile("[^a-z0-9_]+").ReplaceAllString(column, "")
-		columns = append(columns, name)
-		values = append(values, input[column])
+		columns[i] = name
+		values[i] = input[column]
 		if i > 0 {
 			set += ", "
 		}
