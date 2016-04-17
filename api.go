@@ -43,8 +43,8 @@ func Handler(w http.ResponseWriter, req *http.Request) {
 	columns := make([]string, 0, len(input))
 	values := make([]interface{}, 0, len(input))
 	set := ""
-	for i := 0; i < len(input); i++ {
-		column := input[i]
+	i := 0
+	for column := range input {
 		name := regexp.MustCompile("[^a-z0-9_]+").ReplaceAllString(column, "")
 		columns[i] = name
 		values[i] = input[column]
@@ -52,6 +52,7 @@ func Handler(w http.ResponseWriter, req *http.Request) {
 			set += ", "
 		}
 		set += fmt.Sprintf("`%s`=@%d", name, i)
+		i++
 	}
 
 	// create SQL based on HTTP method
