@@ -15,6 +15,7 @@ import (
 )
 
 func Handler(w http.ResponseWriter, req *http.Request) {
+	msg := ""
 	w.Header().Add("Content-Type", "text/html; charset=utf-8")
 
 	method := req.Method
@@ -41,7 +42,12 @@ func Handler(w http.ResponseWriter, req *http.Request) {
 
 	// escape the columns from the input object
 	columns := make([]string, 0, len(input))
-	values := make([]interface{}, 0, len(input))
+	var values []interface{}
+	if key > 0 {
+		values = make([]interface{}, 0, len(input) + 1)
+	} else {
+		values = make([]interface{}, 0, len(input))
+	}
 	set := ""
 	i := 0
 	for column := range input {
@@ -56,30 +62,90 @@ func Handler(w http.ResponseWriter, req *http.Request) {
 	}
 
 	// create SQL based on HTTP method
-	sql := ""
+	query := ""
 	switch method {
 	case "GET":
 		if key > 0 {
-			sql = fmt.Sprintf("select * from `%s` where `id`=@pk", table)
+			query = fmt.Sprintf("select * from `%s` where `id`=?", table)
 		} else {
-			sql = fmt.Sprintf("select * from `%s`", table)
+			query = fmt.Sprintf("select * from `%s`", table)
 		}
 		break
 	case "PUT":
-		sql = fmt.Sprintf("update `%s` set %s where `id`=@pk", table, set)
+		query = fmt.Sprintf("update `%s` set %s where `id`=?", table, set)
 		break
 	case "POST":
-		sql = fmt.Sprintf("insert into `%s` set %s; select last_insert_id()", table, set)
+		query = fmt.Sprintf("insert into `%s` set %s; select last_insert_id()", table, set)
 		break
 	case "DELETE":
-		sql = fmt.Sprintf("delete `%s` where `id`=@pk", table)
+		query = fmt.Sprintf("delete `%s` where `id`=?", table)
 		break
+	}
+
+	if key > 0 {
+		values = append(values, key)
+	}
+
+	if method == "GET" {
+		var rows *sql.Rows
+		var pointers []interface{}
+		var container []string
+
+		if key > 0 {
+			rows, err = db.Query(query, key)
+		} else {
+			rows, err = db.Query(query)
+		}
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		cols, err := rows.Columns()
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		length := len(cols)
+
+		if key == 0 {
+			msg += "["
+		}
+		first := true
+		for rows.Next() {
+			pointers = make([]interface{}, length)
+			container = make([]string, length)
+
+			for i := range pointers {
+				pointers[i] = &container[i]
+			}
+
+			if first {
+				first = false
+			} else {
+				msg += ","
+			}
+			err := rows.Scan(pointers...)
+			if err != nil {
+				log.Fatal(err)
+			}
+			b, err := json.Marshal(container)
+			if err != nil {
+				log.Fatal(err)
+			}
+			msg += string(b)
+		}
+		if key == 0 {
+			msg += "]"
+		}
+	} else if method == "POST" {
+	} else {
 	}
 
 	// close mysql connection
 	defer db.Close()
 
-	fmt.Fprint(w, sql)
+	fmt.Fprint(w, query)
+	fmt.Fprint(w, msg)
 }
 
 func main() {
