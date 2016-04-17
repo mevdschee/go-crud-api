@@ -1,8 +1,9 @@
 package main
 
 import (
-	"encoding/json"
+	"bufio"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	"log"
@@ -11,7 +12,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"bufio"
 )
 
 func Handler(w http.ResponseWriter, req *http.Request) {
@@ -23,7 +23,7 @@ func Handler(w http.ResponseWriter, req *http.Request) {
 
 	// load input from request body
 	var input map[string]interface{}
-	r := bufio.NewReader(req.Body);
+	r := bufio.NewReader(req.Body)
 	buf, _ := r.ReadBytes(0)
 	json.Unmarshal(buf, &input)
 
@@ -43,20 +43,20 @@ func Handler(w http.ResponseWriter, req *http.Request) {
 	columns := make([]string, 0, len(input))
 	values := make([]interface{}, 0, len(input))
 	set := ""
-	i:=0
+	i := 0
 	for column := range input {
 		name := regexp.MustCompile("[^a-z0-9_]+").ReplaceAllString(column, "")
 		columns = append(columns, name)
 		values = append(values, input[column])
-		if i>0 {
+		if i > 0 {
 			set += ", "
 		}
-		set+=fmt.Sprintf("`%s`=@%d",name,i)
-		i++;
- 	}
+		set += fmt.Sprintf("`%s`=@%d", name, i)
+		i++
+	}
 
 	// create SQL based on HTTP method
-	sql:="";
+	sql := ""
 	switch method {
 	case "GET":
 		if key > 0 {
