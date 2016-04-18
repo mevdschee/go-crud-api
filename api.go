@@ -16,7 +16,7 @@ import (
 
 func RequestHandler(w http.ResponseWriter, req *http.Request) {
 	msg := ""
-	w.Header().Add("Content-Type", "text/html; charset=utf-8")
+	w.Header().Add("Content-Type", "application/json; charset=utf-8")
 
 	method := req.Method
 	u, _ := url.ParseRequestURI(req.RequestURI)
@@ -141,7 +141,6 @@ func RequestHandler(w http.ResponseWriter, req *http.Request) {
 	// close mysql connection
 	defer db.Close()
 
-	fmt.Fprint(w, query)
 	fmt.Fprint(w, msg)
 }
 
