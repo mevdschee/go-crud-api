@@ -14,7 +14,7 @@ import (
 	"strings"
 )
 
-func Handler(w http.ResponseWriter, req *http.Request) {
+func RequestHandler(w http.ResponseWriter, req *http.Request) {
 	msg := ""
 	w.Header().Add("Content-Type", "text/html; charset=utf-8")
 
@@ -146,7 +146,7 @@ func Handler(w http.ResponseWriter, req *http.Request) {
 }
 
 func main() {
-	http.HandleFunc("/", Handler)
+	http.HandleFunc("/", RequestHandler)
 	err := http.ListenAndServe(":8000", nil)
 	if err != nil {
 		log.Fatal("ListenAndServe error: ", err)
