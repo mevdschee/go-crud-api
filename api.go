@@ -96,11 +96,10 @@ func Handler(w http.ResponseWriter, req *http.Request) {
 		if err != nil {
 			log.Fatal(err)
 		}
-		values := make([]*string, len(cols))
-		rawValues := make([]sql.RawBytes, len(cols))
-		scanArgs := make([]interface{}, len(values))
-		for i := range values {
-			scanArgs[i] = &rawValues[i]
+		values := make([]interface{}, len(cols))
+		for i, _ := range values {
+			var value *string
+			values[i] = &value
 		}
 
 		if key == 0 {
@@ -113,20 +112,10 @@ func Handler(w http.ResponseWriter, req *http.Request) {
 			} else {
 				msg += ","
 			}
-			err := rows.Scan(scanArgs...)
+			err := rows.Scan(values...)
 			if err != nil {
 				log.Fatal(err)
 			}
-
-			for i, _ := range cols {
-				if rawValues[i] == nil {
-					values[i] = nil
-				} else {
-					rawValue := string(rawValues[i])
-					values[i] = &rawValue
-				}
-			}
-
 			b, err := json.Marshal(values)
 			if err != nil {
 				log.Fatal(err)
