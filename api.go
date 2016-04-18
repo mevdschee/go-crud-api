@@ -14,7 +14,7 @@ import (
 	"strings"
 )
 
-func Handler(w http.ResponseWriter, req *http.Request) {
+func RequestHandler(w http.ResponseWriter, req *http.Request) {
 	msg := ""
 	w.Header().Add("Content-Type", "text/html; charset=utf-8")
 
@@ -87,9 +87,6 @@ func Handler(w http.ResponseWriter, req *http.Request) {
 	}
 
 	if method == "GET" {
-		var pointers []interface{}
-		var container []string
-
 		rows, err := db.Query(query, values...)
 		if err != nil {
 			log.Fatal(err)
@@ -99,31 +96,27 @@ func Handler(w http.ResponseWriter, req *http.Request) {
 		if err != nil {
 			log.Fatal(err)
 		}
-
-		length := len(cols)
+		values := make([]interface{}, len(cols))
+		for i, _ := range values {
+			var value *string
+			values[i] = &value
+		}
 
 		if key == 0 {
 			msg += "["
 		}
 		first := true
 		for rows.Next() {
-			pointers = make([]interface{}, length)
-			container = make([]string, length)
-
-			for i := range pointers {
-				pointers[i] = &container[i]
-			}
-
 			if first {
 				first = false
 			} else {
 				msg += ","
 			}
-			err := rows.Scan(pointers...)
+			err := rows.Scan(values...)
 			if err != nil {
 				log.Fatal(err)
 			}
-			b, err := json.Marshal(container)
+			b, err := json.Marshal(values)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -153,7 +146,7 @@ func Handler(w http.ResponseWriter, req *http.Request) {
 }
 
 func main() {
-	http.HandleFunc("/", Handler)
+	http.HandleFunc("/", RequestHandler)
 	err := http.ListenAndServe(":8000", nil)
 	if err != nil {
 		log.Fatal("ListenAndServe error: ", err)
