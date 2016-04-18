@@ -87,9 +87,6 @@ func Handler(w http.ResponseWriter, req *http.Request) {
 	}
 
 	if method == "GET" {
-		var pointers []interface{}
-		var container []string
-
 		rows, err := db.Query(query, values...)
 		if err != nil {
 			log.Fatal(err)
@@ -99,31 +96,38 @@ func Handler(w http.ResponseWriter, req *http.Request) {
 		if err != nil {
 			log.Fatal(err)
 		}
-
-		length := len(cols)
+		values := make([]*string, len(cols))
+		rawValues := make([]sql.RawBytes, len(cols))
+		scanArgs := make([]interface{}, len(values))
+		for i := range values {
+			scanArgs[i] = &rawValues[i]
+		}
 
 		if key == 0 {
 			msg += "["
 		}
 		first := true
 		for rows.Next() {
-			pointers = make([]interface{}, length)
-			container = make([]string, length)
-
-			for i := range pointers {
-				pointers[i] = &container[i]
-			}
-
 			if first {
 				first = false
 			} else {
 				msg += ","
 			}
-			err := rows.Scan(pointers...)
+			err := rows.Scan(scanArgs...)
 			if err != nil {
 				log.Fatal(err)
 			}
-			b, err := json.Marshal(container)
+
+			for i, _ := range cols {
+				if rawValues[i] == nil {
+					values[i] = nil
+				} else {
+					rawValue := string(rawValues[i])
+					values[i] = &rawValue
+				}
+			}
+
+			b, err := json.Marshal(values)
 			if err != nil {
 				log.Fatal(err)
 			}
