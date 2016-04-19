@@ -14,6 +14,8 @@ import (
 	"strings"
 )
 
+var db *sql.DB
+
 func RequestHandler(w http.ResponseWriter, req *http.Request) {
 	msg := ""
 	w.Header().Add("Content-Type", "application/json; charset=utf-8")
@@ -28,10 +30,6 @@ func RequestHandler(w http.ResponseWriter, req *http.Request) {
 	buf, _ := r.ReadBytes(0)
 	json.Unmarshal(buf, &input)
 
-	db, err := sql.Open("mysql", "php-crud-api:php-crud-api@unix(/var/run/mysqld/mysqld.sock)/php-crud-api")
-	if err != nil {
-		panic(err.Error())
-	}
 
 	// retrieve the table and key from the path
 	table := regexp.MustCompile("[^a-z0-9_]+").ReplaceAllString(request[0], "")
@@ -138,15 +136,20 @@ func RequestHandler(w http.ResponseWriter, req *http.Request) {
 		msg += string(b)
 	}
 
-	// close mysql connection
-	defer db.Close()
-
 	fmt.Fprint(w, msg)
 }
 
 func main() {
+	var err error
+	db, err = sql.Open("mysql", "php-crud-api:php-crud-api@unix(/var/run/mysqld/mysqld.sock)/php-crud-api")
+	if err != nil {
+		panic(err.Error())
+	}
+	// close mysql connection
+	defer db.Close()
+
 	http.HandleFunc("/", RequestHandler)
-	err := http.ListenAndServe(":8000", nil)
+	err = http.ListenAndServe(":8000", nil)
 	if err != nil {
 		log.Fatal("ListenAndServe error: ", err)
 	}
