@@ -4,21 +4,35 @@ import (
 	"bufio"
 	"database/sql"
 	"encoding/json"
+	"flag"
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	"log"
 	"net/http"
 	"net/url"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 )
 
-var db *sql.DB
+const (
+	connectionString = "php-crud-api:php-crud-api@unix(/var/run/mysqld/mysqld.sock)/php-crud-api"
+	maxConnections   = 256
+)
+
+var (
+	db *sql.DB
+)
+
+var (
+	listenAddr = flag.String("listenAddr", ":8000", "Address to listen to")
+	child      = flag.Bool("child", false, "is child proc")
+)
 
 func RequestHandler(w http.ResponseWriter, req *http.Request) {
 	msg := ""
-	w.Header().Add("Content-Type", "application/json; charset=utf-8")
+	w.Header().Add("Content-Type", "application/json")
 
 	method := req.Method
 	u, _ := url.ParseRequestURI(req.RequestURI)
@@ -29,7 +43,6 @@ func RequestHandler(w http.ResponseWriter, req *http.Request) {
 	r := bufio.NewReader(req.Body)
 	buf, _ := r.ReadBytes(0)
 	json.Unmarshal(buf, &input)
-
 
 	// retrieve the table and key from the path
 	table := regexp.MustCompile("[^a-z0-9_]+").ReplaceAllString(request[0], "")
@@ -140,16 +153,22 @@ func RequestHandler(w http.ResponseWriter, req *http.Request) {
 }
 
 func main() {
+	runtime.GOMAXPROCS(runtime.NumCPU())
+
 	var err error
-	db, err = sql.Open("mysql", "php-crud-api:php-crud-api@unix(/var/run/mysqld/mysqld.sock)/php-crud-api")
+	db, err = sql.Open("mysql", connectionString)
 	if err != nil {
 		panic(err.Error())
 	}
+
+	db.SetMaxIdleConns(maxConnections)
+	db.SetMaxOpenConns(maxConnections)
+
 	// close mysql connection
 	defer db.Close()
 
 	http.HandleFunc("/", RequestHandler)
-	err = http.ListenAndServe(":8000", nil)
+	err = http.ListenAndServe(*listenAddr, nil)
 	if err != nil {
 		log.Fatal("ListenAndServe error: ", err)
 	}
