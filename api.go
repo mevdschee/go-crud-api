@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"database/sql"
 	"encoding/json"
 	"flag"
@@ -40,9 +39,11 @@ func RequestHandler(w http.ResponseWriter, req *http.Request) {
 
 	// load input from request body
 	var input map[string]interface{}
-	r := bufio.NewReader(req.Body)
-	buf, _ := r.ReadBytes(0)
-	json.Unmarshal(buf, &input)
+	decoder := json.NewDecoder(req.Body)
+	err := decoder.Decode(&input)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	// retrieve the table and key from the path
 	table := regexp.MustCompile("[^a-z0-9_]+").ReplaceAllString(request[0], "")
@@ -61,15 +62,19 @@ func RequestHandler(w http.ResponseWriter, req *http.Request) {
 	}
 	set := ""
 	i := 0
-	for column := range input {
+	for column, value := range input {
 		name := regexp.MustCompile("[^a-z0-9_]+").ReplaceAllString(column, "")
-		columns[i] = name
-		values[i] = input[column]
+		columns = append(columns, column)
+		values = append(values, value)
 		if i > 0 {
 			set += ", "
 		}
-		set += fmt.Sprintf("`%s`=@%d", name, i)
+		set += fmt.Sprintf("`%s`=?", name)
 		i++
+	}
+
+	if key > 0 {
+		values = append(values, key)
 	}
 
 	// create SQL based on HTTP method
@@ -86,15 +91,11 @@ func RequestHandler(w http.ResponseWriter, req *http.Request) {
 		query = fmt.Sprintf("update `%s` set %s where `id`=?", table, set)
 		break
 	case "POST":
-		query = fmt.Sprintf("insert into `%s` set %s; select last_insert_id()", table, set)
+		query = fmt.Sprintf("insert into `%s` set %s", table, set)
 		break
 	case "DELETE":
 		query = fmt.Sprintf("delete `%s` where `id`=?", table)
 		break
-	}
-
-	if key > 0 {
-		values = append(values, key)
 	}
 
 	if method == "GET" {
@@ -137,16 +138,23 @@ func RequestHandler(w http.ResponseWriter, req *http.Request) {
 			msg += "]"
 		}
 	} else if method == "POST" {
+		result, err := db.Exec(query, values...)
+		if err != nil {
+			log.Fatal(err)
+		} else {
+			lastInsertId, _ := result.LastInsertId()
+			b, _ := json.Marshal(lastInsertId)
+			msg += string(b)
+		}
 	} else {
 		result, err := db.Exec(query, values...)
 		if err != nil {
 			log.Fatal(err)
+		} else {
+			rowsAffected, _ := result.RowsAffected()
+			b, _ := json.Marshal(rowsAffected)
+			msg += string(b)
 		}
-		b, err := json.Marshal(result)
-		if err != nil {
-			log.Fatal(err)
-		}
-		msg += string(b)
 	}
 
 	fmt.Fprint(w, msg)
