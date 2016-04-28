@@ -40,10 +40,7 @@ func RequestHandler(w http.ResponseWriter, req *http.Request) {
 	// load input from request body
 	var input map[string]interface{}
 	decoder := json.NewDecoder(req.Body)
-	err := decoder.Decode(&input)
-	if err != nil {
-		log.Fatal(err)
-	}
+	decoder.Decode(&input)
 
 	// retrieve the table and key from the path
 	table := regexp.MustCompile("[^a-z0-9_]+").ReplaceAllString(request[0], "")
