@@ -30,7 +30,7 @@ var (
 	child      = flag.Bool("child", false, "is child proc")
 )
 
-func RequestHandler(w http.ResponseWriter, req *http.Request) {
+func requestHandler(w http.ResponseWriter, req *http.Request) {
 	msg := ""
 	w.Header().Add("Content-Type", "application/json")
 
@@ -108,7 +108,7 @@ func RequestHandler(w http.ResponseWriter, req *http.Request) {
 			log.Fatal(err)
 		}
 		values := make([]interface{}, len(cols))
-		for i, _ := range values {
+		for i := range values {
 			var value *string
 			values[i] = &value
 		}
@@ -167,7 +167,7 @@ func main() {
 	// close mysql connection
 	defer db.Close()
 
-	http.HandleFunc("/", RequestHandler)
+	http.HandleFunc("/", requestHandler)
 	err = http.ListenAndServe(*listenAddr, nil)
 	if err != nil {
 		log.Fatal("ListenAndServe error: ", err)
