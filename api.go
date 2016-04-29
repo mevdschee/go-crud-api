@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	_ "github.com/go-sql-driver/mysql"
 	"log"
 	"net/http"
 	"net/url"
@@ -13,6 +12,8 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+
+	_ "github.com/go-sql-driver/mysql"
 )
 
 const (
@@ -105,7 +106,7 @@ func requestHandler(w http.ResponseWriter, req *http.Request) {
 		if err != nil {
 			log.Fatal(err)
 		}
-		values := make([]interface{}, len(cols))
+		values = make([]interface{}, len(cols))
 		for i := range values {
 			var value *string
 			values[i] = &value
@@ -139,8 +140,8 @@ func requestHandler(w http.ResponseWriter, req *http.Request) {
 		if err != nil {
 			log.Fatal(err)
 		} else {
-			lastInsertId, _ := result.LastInsertId()
-			b, _ := json.Marshal(lastInsertId)
+			lastInsertID, _ := result.LastInsertId()
+			b, _ := json.Marshal(lastInsertID)
 			msg += string(b)
 		}
 	} else {
