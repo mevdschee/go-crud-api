@@ -51,17 +51,17 @@ func requestHandler(w http.ResponseWriter, req *http.Request) {
 	}
 
 	// escape the columns from the input object
-	var values []interface{}
+	var args []interface{}
 	if key > 0 {
-		values = make([]interface{}, 0, len(input)+1)
+		args = make([]interface{}, 0, len(input)+1)
 	} else {
-		values = make([]interface{}, 0, len(input))
+		args = make([]interface{}, 0, len(input))
 	}
 	set := ""
 	i := 0
-	for column, value := range input {
+	for column, arg := range input {
 		name := regexp.MustCompile("[^a-z0-9_]+").ReplaceAllString(column, "")
-		values = append(values, value)
+		args = append(args, arg)
 		if i > 0 {
 			set += ", "
 		}
@@ -70,7 +70,7 @@ func requestHandler(w http.ResponseWriter, req *http.Request) {
 	}
 
 	if key > 0 {
-		values = append(values, key)
+		args = append(args, key)
 	}
 
 	// create SQL based on HTTP method
@@ -95,7 +95,7 @@ func requestHandler(w http.ResponseWriter, req *http.Request) {
 	}
 
 	if method == "GET" {
-		rows, err := db.Query(query, values...)
+		rows, err := db.Query(query, args...)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -104,7 +104,7 @@ func requestHandler(w http.ResponseWriter, req *http.Request) {
 		if err != nil {
 			log.Fatal(err)
 		}
-		values = make([]interface{}, len(cols))
+		values := make([]interface{}, len(cols))
 		for i := range values {
 			var value *string
 			values[i] = &value
@@ -134,7 +134,7 @@ func requestHandler(w http.ResponseWriter, req *http.Request) {
 			msg += "]"
 		}
 	} else if method == "POST" {
-		result, err := db.Exec(query, values...)
+		result, err := db.Exec(query, args...)
 		if err != nil {
 			log.Fatal(err)
 		} else {
@@ -143,7 +143,7 @@ func requestHandler(w http.ResponseWriter, req *http.Request) {
 			msg += string(b)
 		}
 	} else {
-		result, err := db.Exec(query, values...)
+		result, err := db.Exec(query, args...)
 		if err != nil {
 			log.Fatal(err)
 		} else {
