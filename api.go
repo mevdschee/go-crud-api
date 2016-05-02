@@ -31,7 +31,7 @@ var (
 )
 
 func requestHandler(w http.ResponseWriter, req *http.Request) {
-	msg := ""
+	var msg []byte
 	w.Header().Add("Content-Type", "application/json")
 
 	method := req.Method
@@ -51,28 +51,22 @@ func requestHandler(w http.ResponseWriter, req *http.Request) {
 	}
 
 	// escape the columns from the input object
-	columns := make([]string, 0, len(input))
-	var values []interface{}
+	var args []interface{}
 	if key > 0 {
-		values = make([]interface{}, 0, len(input)+1)
+		args = make([]interface{}, 0, len(input)+1)
 	} else {
-		values = make([]interface{}, 0, len(input))
+		args = make([]interface{}, 0, len(input))
 	}
-	set := ""
-	i := 0
-	for column, value := range input {
+	columns := make([]string, 0, len(input))
+	for column, arg := range input {
 		name := regexp.MustCompile("[^a-z0-9_]+").ReplaceAllString(column, "")
-		columns = append(columns, column)
-		values = append(values, value)
-		if i > 0 {
-			set += ", "
-		}
-		set += fmt.Sprintf("`%s`=?", name)
-		i++
+		args = append(args, arg)
+		columns = append(columns, fmt.Sprintf("`%s`=?", name))
 	}
+	set := strings.Join(columns, ", ")
 
 	if key > 0 {
-		values = append(values, key)
+		args = append(args, key)
 	}
 
 	// create SQL based on HTTP method
@@ -92,12 +86,12 @@ func requestHandler(w http.ResponseWriter, req *http.Request) {
 		query = fmt.Sprintf("insert into `%s` set %s", table, set)
 		break
 	case "DELETE":
-		query = fmt.Sprintf("delete `%s` where `id`=?", table)
+		query = fmt.Sprintf("delete from `%s` where `id`=?", table)
 		break
 	}
 
 	if method == "GET" {
-		rows, err := db.Query(query, values...)
+		rows, err := db.Query(query, args...)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -106,56 +100,51 @@ func requestHandler(w http.ResponseWriter, req *http.Request) {
 		if err != nil {
 			log.Fatal(err)
 		}
-		values = make([]interface{}, len(cols))
+		values := make([]interface{}, len(cols))
 		for i := range values {
 			var value *string
 			values[i] = &value
 		}
 
-		if key == 0 {
-			msg += "["
-		}
-		first := true
+		data := make(map[string]interface{})
+		var records []interface{}
 		for rows.Next() {
-			if first {
-				first = false
-			} else {
-				msg += ","
-			}
 			err := rows.Scan(values...)
 			if err != nil {
 				log.Fatal(err)
 			}
-			b, err := json.Marshal(values)
-			if err != nil {
-				log.Fatal(err)
-			}
-			msg += string(b)
+			records = append(records, values)
 		}
 		if key == 0 {
-			msg += "]"
+			data["columns"] = cols
+			data["records"] = records
+		} else {
+			if len(records) > 0 {
+				for i, col := range cols {
+					data[col] = records[0].([]interface{})[i]
+				}
+			}
 		}
+		msg, _ = json.Marshal(data)
 	} else if method == "POST" {
-		result, err := db.Exec(query, values...)
+		result, err := db.Exec(query, args...)
 		if err != nil {
 			log.Fatal(err)
 		} else {
 			lastInsertID, _ := result.LastInsertId()
-			b, _ := json.Marshal(lastInsertID)
-			msg += string(b)
+			msg, _ = json.Marshal(lastInsertID)
 		}
 	} else {
-		result, err := db.Exec(query, values...)
+		result, err := db.Exec(query, args...)
 		if err != nil {
 			log.Fatal(err)
 		} else {
 			rowsAffected, _ := result.RowsAffected()
-			b, _ := json.Marshal(rowsAffected)
-			msg += string(b)
+			msg, _ = json.Marshal(rowsAffected)
 		}
 	}
 
-	fmt.Fprint(w, msg)
+	w.Write(msg)
 }
 
 func main() {
