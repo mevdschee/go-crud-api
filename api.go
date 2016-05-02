@@ -31,7 +31,7 @@ var (
 )
 
 func requestHandler(w http.ResponseWriter, req *http.Request) {
-	msg := ""
+	var msg []byte
 	w.Header().Add("Content-Type", "application/json")
 
 	method := req.Method
@@ -57,17 +57,13 @@ func requestHandler(w http.ResponseWriter, req *http.Request) {
 	} else {
 		args = make([]interface{}, 0, len(input))
 	}
-	set := ""
-	i := 0
+	columns := make([]string, 0, len(input))
 	for column, arg := range input {
 		name := regexp.MustCompile("[^a-z0-9_]+").ReplaceAllString(column, "")
 		args = append(args, arg)
-		if i > 0 {
-			set += ", "
-		}
-		set += fmt.Sprintf("`%s`=?", name)
-		i++
+		columns = append(columns, fmt.Sprintf("`%s`=?", name))
 	}
+	set := strings.Join(columns, ", ")
 
 	if key > 0 {
 		args = append(args, key)
@@ -110,37 +106,33 @@ func requestHandler(w http.ResponseWriter, req *http.Request) {
 			values[i] = &value
 		}
 
-		if key == 0 {
-			msg += "["
-		}
-		first := true
+		data := make(map[string]interface{})
+		var records []interface{}
 		for rows.Next() {
-			if first {
-				first = false
-			} else {
-				msg += ","
-			}
 			err := rows.Scan(values...)
 			if err != nil {
 				log.Fatal(err)
 			}
-			b, err := json.Marshal(values)
-			if err != nil {
-				log.Fatal(err)
-			}
-			msg += string(b)
+			records = append(records, values)
 		}
 		if key == 0 {
-			msg += "]"
+			data["columns"] = cols
+			data["records"] = records
+		} else {
+			if len(records) > 0 {
+				for i, col := range cols {
+					data[col] = records[0].([]interface{})[i]
+				}
+			}
 		}
+		msg, _ = json.Marshal(data)
 	} else if method == "POST" {
 		result, err := db.Exec(query, args...)
 		if err != nil {
 			log.Fatal(err)
 		} else {
 			lastInsertID, _ := result.LastInsertId()
-			b, _ := json.Marshal(lastInsertID)
-			msg += string(b)
+			msg, _ = json.Marshal(lastInsertID)
 		}
 	} else {
 		result, err := db.Exec(query, args...)
@@ -148,12 +140,11 @@ func requestHandler(w http.ResponseWriter, req *http.Request) {
 			log.Fatal(err)
 		} else {
 			rowsAffected, _ := result.RowsAffected()
-			b, _ := json.Marshal(rowsAffected)
-			msg += string(b)
+			msg, _ = json.Marshal(rowsAffected)
 		}
 	}
 
-	fmt.Fprint(w, msg)
+	w.Write(msg)
 }
 
 func main() {
