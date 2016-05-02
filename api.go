@@ -51,7 +51,6 @@ func requestHandler(w http.ResponseWriter, req *http.Request) {
 	}
 
 	// escape the columns from the input object
-	columns := make([]string, 0, len(input))
 	var values []interface{}
 	if key > 0 {
 		values = make([]interface{}, 0, len(input)+1)
@@ -62,7 +61,6 @@ func requestHandler(w http.ResponseWriter, req *http.Request) {
 	i := 0
 	for column, value := range input {
 		name := regexp.MustCompile("[^a-z0-9_]+").ReplaceAllString(column, "")
-		columns = append(columns, column)
 		values = append(values, value)
 		if i > 0 {
 			set += ", "
