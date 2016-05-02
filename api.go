@@ -86,7 +86,7 @@ func requestHandler(w http.ResponseWriter, req *http.Request) {
 		query = fmt.Sprintf("insert into `%s` set %s", table, set)
 		break
 	case "DELETE":
-		query = fmt.Sprintf("delete `%s` where `id`=?", table)
+		query = fmt.Sprintf("delete from `%s` where `id`=?", table)
 		break
 	}
 
