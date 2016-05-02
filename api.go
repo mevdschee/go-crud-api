@@ -31,7 +31,7 @@ var (
 )
 
 func requestHandler(w http.ResponseWriter, req *http.Request) {
-	var msg []byte
+	var data interface{}
 	w.Header().Add("Content-Type", "application/json")
 
 	method := req.Method
@@ -106,7 +106,7 @@ func requestHandler(w http.ResponseWriter, req *http.Request) {
 			values[i] = &value
 		}
 
-		data := make(map[string]interface{})
+		data = make(map[string]interface{})
 		var records []interface{}
 		for rows.Next() {
 			err := rows.Scan(values...)
@@ -116,34 +116,32 @@ func requestHandler(w http.ResponseWriter, req *http.Request) {
 			records = append(records, values)
 		}
 		if key == 0 {
-			data["columns"] = cols
-			data["records"] = records
+			data.(map[string]interface{})["columns"] = cols
+			data.(map[string]interface{})["records"] = records
 		} else {
 			if len(records) > 0 {
 				for i, col := range cols {
-					data[col] = records[0].([]interface{})[i]
+					data.(map[string]interface{})[col] = records[0].([]interface{})[i]
 				}
 			}
 		}
-		msg, _ = json.Marshal(data)
 	} else if method == "POST" {
 		result, err := db.Exec(query, args...)
 		if err != nil {
 			log.Fatal(err)
 		} else {
-			lastInsertID, _ := result.LastInsertId()
-			msg, _ = json.Marshal(lastInsertID)
+			data, _ = result.LastInsertId()
 		}
 	} else {
 		result, err := db.Exec(query, args...)
 		if err != nil {
 			log.Fatal(err)
 		} else {
-			rowsAffected, _ := result.RowsAffected()
-			msg, _ = json.Marshal(rowsAffected)
+			data, _ = result.RowsAffected()
 		}
 	}
 
+	msg, _ := json.Marshal(data)
 	w.Write(msg)
 }
 
