@@ -119,8 +119,7 @@ func requestHandler(w http.ResponseWriter, req *http.Request) {
 			record[col] = &value
 		}
 
-		i := 0
-		for rows.Next() {
+		for i := 0; rows.Next(); i++ {
 			err := rows.Scan(values...)
 			if err != nil {
 				log.Fatal(err)
@@ -135,7 +134,6 @@ func requestHandler(w http.ResponseWriter, req *http.Request) {
 				msg, _ = json.Marshal(record)
 				w.Write(msg)
 			}
-			i++
 		}
 		if key == 0 {
 			w.Write([]byte("]}}"))
