@@ -31,6 +31,7 @@ var (
 )
 
 func requestHandler(w http.ResponseWriter, req *http.Request) {
+	var msg []byte
 	var data interface{}
 	w.Header().Add("Content-Type", "application/json")
 
@@ -100,49 +101,61 @@ func requestHandler(w http.ResponseWriter, req *http.Request) {
 		if err != nil {
 			log.Fatal(err)
 		}
+		if key == 0 {
+			w.Write([]byte("{"))
+			msg, _ = json.Marshal(table)
+			w.Write(msg)
+			w.Write([]byte(":{\"columns\":"))
+			msg, _ = json.Marshal(cols)
+			w.Write(msg)
+			w.Write([]byte(",\"records\":["))
+		}
+
 		values := make([]interface{}, len(cols))
 		for i := range values {
 			var value *string
 			values[i] = &value
 		}
 
-		data = make(map[string]interface{})
-		var records []interface{}
+		i := 0
 		for rows.Next() {
 			err := rows.Scan(values...)
 			if err != nil {
 				log.Fatal(err)
 			}
-			records = append(records, values)
+			if key == 0 {
+				if i > 0 {
+					w.Write([]byte(","))
+				}
+				msg, _ := json.Marshal(values)
+				w.Write(msg)
+			} else {
+				data = make(map[string]interface{})
+				for i, col := range cols {
+					data.(map[string]interface{})[col] = values[i]
+				}
+				msg, _ := json.Marshal(data)
+				w.Write(msg)
+			}
+			i++
 		}
 		if key == 0 {
-			data.(map[string]interface{})["columns"] = cols
-			data.(map[string]interface{})["records"] = records
-		} else {
-			if len(records) > 0 {
-				for i, col := range cols {
-					data.(map[string]interface{})[col] = records[0].([]interface{})[i]
-				}
-			}
-		}
-	} else if method == "POST" {
-		result, err := db.Exec(query, args...)
-		if err != nil {
-			log.Fatal(err)
-		} else {
-			data, _ = result.LastInsertId()
+			w.Write([]byte("]}}"))
 		}
 	} else {
 		result, err := db.Exec(query, args...)
 		if err != nil {
 			log.Fatal(err)
 		} else {
-			data, _ = result.RowsAffected()
+			if method == "POST" {
+				data, _ = result.LastInsertId()
+			} else {
+				data, _ = result.RowsAffected()
+			}
+			msg, _ := json.Marshal(data)
+			w.Write(msg)
 		}
 	}
-
-	msg, _ := json.Marshal(data)
-	w.Write(msg)
 }
 
 func main() {
