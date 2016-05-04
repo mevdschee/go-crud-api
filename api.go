@@ -112,9 +112,11 @@ func requestHandler(w http.ResponseWriter, req *http.Request) {
 		}
 
 		values := make([]interface{}, len(cols))
-		for i := range values {
+		record := make(map[string]interface{})
+		for i, col := range cols {
 			var value *string
 			values[i] = &value
+			record[col] = &value
 		}
 
 		i := 0
@@ -127,14 +129,10 @@ func requestHandler(w http.ResponseWriter, req *http.Request) {
 				if i > 0 {
 					w.Write([]byte(","))
 				}
-				msg, _ := json.Marshal(values)
+				msg, _ = json.Marshal(values)
 				w.Write(msg)
 			} else {
-				data = make(map[string]interface{})
-				for i, col := range cols {
-					data.(map[string]interface{})[col] = values[i]
-				}
-				msg, _ := json.Marshal(data)
+				msg, _ = json.Marshal(record)
 				w.Write(msg)
 			}
 			i++
@@ -152,7 +150,7 @@ func requestHandler(w http.ResponseWriter, req *http.Request) {
 			} else {
 				data, _ = result.RowsAffected()
 			}
-			msg, _ := json.Marshal(data)
+			msg, _ = json.Marshal(data)
 			w.Write(msg)
 		}
 	}
