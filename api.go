@@ -94,12 +94,14 @@ func requestHandler(w http.ResponseWriter, req *http.Request) {
 	if method == "GET" {
 		rows, err := db.Query(query, args...)
 		if err != nil {
-			log.Fatal(err)
+			log.Print(err)
+			return
 		}
 
 		cols, err := rows.Columns()
 		if err != nil {
-			log.Fatal(err)
+			log.Print(err)
+			return
 		}
 		if key == 0 {
 			w.Write([]byte("{"))
@@ -122,7 +124,8 @@ func requestHandler(w http.ResponseWriter, req *http.Request) {
 		for i := 0; rows.Next(); i++ {
 			err := rows.Scan(values...)
 			if err != nil {
-				log.Fatal(err)
+				log.Print(err)
+				return
 			}
 			if key == 0 {
 				if i > 0 {
@@ -141,16 +144,16 @@ func requestHandler(w http.ResponseWriter, req *http.Request) {
 	} else {
 		result, err := db.Exec(query, args...)
 		if err != nil {
-			log.Fatal(err)
-		} else {
-			if method == "POST" {
-				data, _ = result.LastInsertId()
-			} else {
-				data, _ = result.RowsAffected()
-			}
-			msg, _ = json.Marshal(data)
-			w.Write(msg)
+			log.Print(err)
+			return
 		}
+		if method == "POST" {
+			data, _ = result.LastInsertId()
+		} else {
+			data, _ = result.RowsAffected()
+		}
+		msg, _ = json.Marshal(data)
+		w.Write(msg)
 	}
 }
 
