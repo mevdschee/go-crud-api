@@ -1,0 +1,17 @@
+hash: c77ea09d374fbba0d3a91514cc78ff7088bfebe7f5aabe855902743a8a581087
+updated: 2017-07-14T13:47:38.227340079+02:00
+imports:
+- name: github.com/go-sql-driver/mysql
+  version: a0583e0143b1624142adab07e0e97fe106d99561
+testImports:
+- name: github.com/bitly/go-simplejson
+  version: aabad6e819789e569bd6aabf444c935aa9ba1e44
+- name: github.com/mozillazg/request
+  version: 052232e32456da4751d789b61e89aba4a07a7e25
+- name: github.com/verdverm/frisby
+  version: ae8a1432c2c0d1bbba8a149eb5f6e14cf50b2912
+- name: golang.org/x/net
+  version: c4c3ea71919de159c9e246d7be66deb7f0a39a58
+  subpackages:
+  - proxy
+  - publicsuffix
