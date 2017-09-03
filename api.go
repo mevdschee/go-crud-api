@@ -27,7 +27,6 @@ var (
 
 var (
 	listenAddr = flag.String("listenAddr", ":8000", "Address to listen to")
-	child      = flag.Bool("child", false, "is child proc")
 )
 
 func requestHandler(w http.ResponseWriter, req *http.Request) {
