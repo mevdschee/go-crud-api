@@ -17,7 +17,16 @@ import (
 )
 
 const (
-	connectionString = "php-crud-api:php-crud-api@unix(/var/run/mysqld/mysqld.sock)/php-crud-api"
+	//mysql db setting
+	user = "root"
+	password = ""
+	host = "127.0.0.1"
+	port = "3306"
+	database = "freefood"
+
+	//server setting
+	serverPort = "8000"
+
 	maxConnections   = 256
 )
 
@@ -26,7 +35,8 @@ var (
 )
 
 var (
-	listenAddr = flag.String("listenAddr", ":8000", "Address to listen to")
+	listenAddr = flag.String("listenAddr", ":"+serverPort, "Address to listen to")
+	connectionString = fmt.Sprintf("%s@tcp(%s:%s)/%s", user, password, host, port, database)
 )
 
 func requestHandler(w http.ResponseWriter, req *http.Request) {
