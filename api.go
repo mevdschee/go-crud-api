@@ -22,7 +22,7 @@ const (
 	password = ""
 	host = "127.0.0.1"
 	port = "3306"
-	database = "freefood"
+	database = "go-crud-api"
 
 	//server setting
 	serverPort = "8000"
@@ -36,7 +36,7 @@ var (
 
 var (
 	listenAddr = flag.String("listenAddr", ":"+serverPort, "Address to listen to")
-	connectionString = fmt.Sprintf("%s@tcp(%s:%s)/%s", user, password, host, port, database)
+	connectionString = fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", user, password, host, port, database)
 )
 
 func requestHandler(w http.ResponseWriter, req *http.Request) {
