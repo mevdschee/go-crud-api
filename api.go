@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
-	"runtime"
 	"strconv"
 	"strings"
 
@@ -167,8 +166,6 @@ func requestHandler(w http.ResponseWriter, req *http.Request) {
 }
 
 func main() {
-	runtime.GOMAXPROCS(runtime.NumCPU())
-
 	var err error
 	db, err = sql.Open("mysql", connectionString)
 	if err != nil {
