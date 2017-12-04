@@ -17,16 +17,16 @@ import (
 
 const (
 	//mysql db setting
-	user = "root"
+	user     = "root"
 	password = ""
-	host = "127.0.0.1"
-	port = "3306"
+	host     = "127.0.0.1"
+	port     = "3306"
 	database = "go-crud-api"
 
 	//server setting
 	serverPort = "8000"
 
-	maxConnections   = 256
+	maxConnections = 256
 )
 
 var (
@@ -34,7 +34,7 @@ var (
 )
 
 var (
-	listenAddr = flag.String("listenAddr", ":"+serverPort, "Address to listen to")
+	listenAddr       = flag.String("listenAddr", ":"+serverPort, "Address to listen to")
 	connectionString = fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", user, password, host, port, database)
 )
 

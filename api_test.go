@@ -29,25 +29,24 @@ func Test_ListOnePosts(*testing.T) {
 func Test_AddPosts(*testing.T) {
 	frisby.Create("Add Post").
 		Post("http://localhost:8000/posts").
-			SetJson( map[string]string {
-				"columnone":"test1",
-				"columntwo":"test2",
-				"columnthree":"test3",
-			} ).
+		SetJson(map[string]string{
+			"columnone":   "test1",
+			"columntwo":   "test2",
+			"columnthree": "test3",
+		}).
 		Send().
 		ExpectStatus(200).
 		PrintBody()
 }
 
-
 func Test_UpdatePosts(*testing.T) {
 	frisby.Create("Update Post").
 		Put("http://localhost:8000/posts/1").
-		SetJson( map[string]string {
-		"columnone":"updated1",
-		"columntwo":"updated2",
-		"columnthree":"updated3",
-	} ).
+		SetJson(map[string]string{
+			"columnone":   "updated1",
+			"columntwo":   "updated2",
+			"columnthree": "updated3",
+		}).
 		Send().
 		ExpectStatus(200).
 		PrintBody()
